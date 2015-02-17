@@ -1,13 +1,11 @@
-#!/bin/bash
-
-source ${CLOUDIFY_LOGGING}
+#!/bin/sh
 
 if [ -f /tmp/butterfly.pid ]; then
 	PID=`cat /tmp/butterfly.pid`
-	cfy_info "killing butterfly pid=$PID"
+	ctx logger info "killing butterfly pid=$PID"
 	kill $PID
 else
-	cfy_error "no pid file found for butterfly"
+	ctx logger error "no pid file found for butterfly"
 	exit 1
 fi
 

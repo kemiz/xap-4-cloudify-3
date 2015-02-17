@@ -1,8 +1,6 @@
 #!/bin/bash
-
-source ${CLOUDIFY_LOGGING}
-
-IP_ADDR=$(ip addr | grep inet | grep eth0 | awk -F" " '{print $2}'| sed -e 's/\/.*$//')
+interfacename=$(ctx node properties interfacename)
+IP_ADDR=$(ip addr | grep inet | grep ${interfacename} | awk -F" " '{print $2}'| sed -e 's/\/.*$//')
 export LOOKUPLOCATORS=$IP_ADDR
 export NIC_ADDR=$IP_ADDR
 if [ -f "/tmp/locators" ]; then
@@ -15,8 +13,5 @@ fi
 
 XAPDIR=`cat /tmp/gsdir`  # left by install script
 
-if [ -f "/tmp/input" ]; then
-    touch /tmp/input
-    echo "1" > input
-fi
-echo 1 | $XAPDIR/bin/gs.sh gsa shutdown < input
+cfy logger info "shutting down with locators=${LOOKUPLOCATORS} XAPDIR=$XAPDIR"
+echo 1 | $XAPDIR/bin/gs.sh gsa shutdown

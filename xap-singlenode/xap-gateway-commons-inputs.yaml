@@ -1,0 +1,41 @@
+inputs:
+##Global parameters
+    lrmi_comm_min_port:
+        description: aa
+        type: integer
+        default: 7122
+    lrmi_comm_max_port:
+        description: aa
+        type: integer
+        default: 7222
+
+##XAP_MANAGEMENT NODE
+    xap_management_webui_port:
+        description: The webui's port
+        type: integer
+        default: 9099
+    xap_management_gscs_count:
+        description: The number of GSCs that should be started on the XAP_MANAGEMENT node
+        type: integer
+        default: 1
+    xap_management_zones:
+        type: string
+        default: restzone
+##XAP_GRID NODE
+    xap_grid_gscs_count:
+        description: The number of GSCs that should be started on the XAP_GRID node
+        type: integer
+        default: 2
+    xap_grid_zones:
+        description: Comma separated list of zones
+        type: string
+        default: "spacezone"
+##XAP_GATEWAY NODE
+    xap_gateway_gscs_count:
+        description: The number of GSCs that should be started on the XAP_GATEWAY node
+        type: integer
+        default: 1
+    xap_gateway_zones:
+        description: Comma separated list of zones
+        type: string
+        default: "gatewayzone"

@@ -1,0 +1,208 @@
+
+node_types:
+    xap_type:
+        derived_from: cloudify.nodes.ApplicationServer
+        properties:
+            interfacename:
+                default: 'eth0'
+                type: string
+            GSA_JAVA_OPTIONS:
+                type: string
+                default: ''
+            gsm_cnt:
+                type: integer
+                default: 0
+            global_gsm_cnt:
+                type: integer
+                default: 0
+            GSM_JAVA_OPTIONS:
+                type: string
+                default: ''
+            lus_cnt:
+                type: integer
+                default: 0
+            lus_port:
+                type: integer
+                default: 0
+            LUS_JAVA_OPTIONS:
+                type: string
+                default: ''
+            global_lus_cnt:
+                type: integer
+                default: 0
+            gsc_cnt:
+                type: integer
+                default: 0
+            GSC_JAVA_OPTIONS:
+                type: string
+                default: ''
+            zones:
+                type: string
+                default: ''
+            download_url:
+                type: string
+                default: 'http://www.gigaspaces.com/tempfiles/downloads/EarlyAccess/xap/10.1.0/m10/gigaspaces-xap-premium-10.1.0-m10-b12592-with-license.zip'
+            license_key:
+                type: string
+                default: ''
+            lrmi_comm_min_port:
+                type: integer
+                default: { get_input: lrmi_comm_min_port }
+            lrmi_comm_max_port:
+                type: integer
+                default: { get_input: lrmi_comm_max_port }
+
+    xap_webui_type:
+        derived_from: cloudify.nodes.WebServer
+        properties:
+            interfacename:
+                type: string
+                default: 'eth0'
+            webui_port:
+                type: integer
+                default: { get_input: xap_management_webui_port }
+
+    demo_shell_type:
+        derived_from: cloudify.nodes.WebServer
+        properties:
+            interfacename:
+                type: string
+                default: 'eth0'
+            port:
+                type: integer
+                default: 8080
+            butterfly_repo:
+                type: string
+                default: https://github.com/CloudifySource/butterfly.git
+            demo_url:
+                type: string
+                default: https://github.com/Gigaspaces/XAP-Interactive-Tutorial/archive/master.zip
+            lrmi_comm_min_port:
+                type: integer
+                default: { get_input: lrmi_comm_min_port }
+            lrmi_comm_max_port:
+                type: integer
+                default: { get_input: lrmi_comm_max_port }
+
+    xap_gateway_type:
+        derived_from: xap_type
+        properties:
+            gsc_cnt:
+                type: integer
+                default: { get_input: xap_gateway_gscs_count }
+            zones:
+                type: string
+                default: { get_input: xap_gateway_zones }
+            lrmi_comm_min_port:
+                type: integer
+                default: { get_input: lrmi_comm_min_port }
+            lrmi_comm_max_port:
+                type: integer
+                default: { get_input: lrmi_comm_max_port }
+    xap_datagrid_type:
+        derived_from: xap_type
+
+plugins:
+    xap_config_plugin:
+        executor: host_agent
+        source: xap-config-plugin
+
+    xap_plugin:
+        executor: host_agent
+        source: xap-plugin
+
+
+workflows:
+    my_workflow:
+        mapping: xap_plugin.xap_workflows.gateway_workflow.start_gateway
+        parameters:
+          space_name:
+            description: The space's name
+            default: "myDataGrid"
+          space_zones:
+            default: 'spacezone'
+          gateway_name:
+            default: "SITE-A"
+          gateway_pu_zones:
+            default: 'gatewayzone'
+          gateway_sources:
+            default: ["SITE-B"]
+          gateway_targets:
+            default: ["SITE-B"]
+          gateway_lookups:
+            default: [{'gwname':'SITE-B','address':'11.0.0.8','discoport':10000,'commport':10001}]
+          gateway_natmappings:
+            default: ''
+          gateway_discoport:
+            default: 10000
+          gateway_commport:
+            default: 10001
+          rest_port:
+            default: 8888
+          rest_zones:
+            default: "restzone"
+    deploy_grid:
+        mapping: xap_plugin.xap_workflows.basic_workflows.deploy_grid
+        parameters:
+            grid_name:
+              default: dataGrid
+            schema:
+              default: partitioned-sync2backup
+            partitions:
+              default: 1
+            backups:
+              default: 0
+            max_per_vm:
+              default: 0
+            max_per_machine:
+              default: 0
+    undeploy_grid:
+        mapping: xap_plugin.xap_workflows.basic_workflows.undeploy_grid
+        parameters:
+            grid_name:
+              default: dataGrid
+    deploy_pu:
+        mapping: xap_plugin.xap_workflows.basic_workflows.deploy_pu
+        parameters:
+            pu_url:
+              default: ""
+            override_pu_name:
+              default: ""
+            schema:
+              default: partitioned-sync2backup
+            partitions:
+              default: 1
+            backups:
+              default: 0
+            max_per_vm:
+              default: 0
+            max_per_machine:
+              default: 0
+    auto_heal_workflow:
+        mapping: default_workflows.cloudify.plugins.workflows.auto_heal_reinstall_node_subgraph
+        parameters:
+            node_id:
+              description: none
+
+
+relationships:
+    xap_connected_to_lus:
+        derived_from: cloudify.relationships.connected_to
+        source_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                postconfigure:
+                    implementation: xap-scripts/get_locators.py
+                    inputs: {}
+
+outputs:
+    management_ui:
+      description: XAP UI URL
+      value:
+        ip: {  get_attribute: [ xap_management_vm,  ip ] }
+        port: { get_property: [ webui , webui_port ] }
+
+    xap_interactive_tutorial:
+      description: XAP Interactive Tutorial's URL
+      value:
+        ip: { get_attribute: [ xap_management_vm , ip ] }
+        port: { get_property: [ demo_shell , port ] }

@@ -1,0 +1,168 @@
+tosca_definitions_version: cloudify_dsl_1_0
+
+#######
+# Cloudify Blueprint which describes a xap cluster (single node)
+#
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+    - http://www.getcloudify.org/spec/diamond-plugin/1.1/plugin.yaml
+    - xap-gateway-commons-inputs.yaml
+    - xap-gateway-commons.yaml
+
+node_types:
+    xap.monitoredServer:
+        derived_from: cloudify.nodes.Compute
+        interfaces:
+          cloudify.interfaces.monitoring_agent:
+              install:
+                implementation: diamond.diamond_agent.tasks.install
+                inputs:
+                  diamond_config:
+                    default:
+                      interval: 1
+              start: diamond.diamond_agent.tasks.start
+              stop: diamond.diamond_agent.tasks.stop
+              uninstall: diamond.diamond_agent.tasks.uninstall
+
+          cloudify.interfaces.monitoring:
+              start:
+                implementation: diamond.diamond_agent.tasks.add_collectors
+                inputs:
+                  collectors_config:
+                    default:
+                      CPUCollector: {}
+                      MemoryCollector: {}
+                      LoadAverageCollector: {}
+                      DiskUsageCollector:
+                        config:
+                          devices: x?vd[a-z]+[0-9]*$
+                      NetworkCollector: {}
+
+
+node_templates:
+         xap_management_vm:
+            type: xap.monitoredServer
+            properties:
+                ip: 127.0.0.1
+                cloudify_agent:
+                    key: /home/vagrant/.ssh/agent_key.pem
+                    user: vagrant
+
+         xap_datagrid_vm:
+            type: xap.monitoredServer
+            properties:
+                ip: 127.0.0.1
+                cloudify_agent:
+                    key: /home/vagrant/.ssh/agent_key.pem
+                    user: vagrant
+
+         xap_gateway_vm:
+            type: xap.monitoredServer
+            properties:
+                ip: 127.0.0.1
+                cloudify_agent:
+                    key: /home/vagrant/.ssh/agent_key.pem
+                    user: vagrant
+
+         xap_management:
+            type: xap_type
+            properties:
+                interfacename: 'eth1'
+                lus_cnt: 1
+                global_lus_cnt: 0
+                gsm_cnt: 1
+                global_gsm_cnt: 0
+                gsc_cnt: { get_input: xap_management_gscs_count }
+                zones: { get_input: xap_management_zones }
+                GSM_JAVA_OPTIONS: -Xms128m -Xmx128m
+            relationships:
+                -   target: xap_management_vm
+                    type: cloudify.relationships.contained_in
+            interfaces:
+                admin.commands:
+                  deploy_grid:
+                      implementation: xap_plugin.xap_operations.basic_operations.deploy_grid
+                  undeploy_grid:
+                      implementation: xap_plugin.xap_operations.basic_operations.undeploy_grid
+                  deploy_pu:
+                      implementation: xap_plugin.xap_operations.basic_operations.deploy_pu
+                  deploy_gateway_space:
+                      implementation: xap_plugin.xap_operations.gateway_operations.deploy_gateway_space
+                  deploy_rest:
+                      implementation: xap_plugin.xap_operations.gateway_operations.deploy_rest
+
+                cloudify.interfaces.lifecycle:
+                  create: xap-scripts/install-xap.sh
+                  start: xap-scripts/start-xap.sh
+                  stop: xap-scripts/stop-xap.sh
+
+
+         xap_datagrid:
+            type: xap_datagrid_type
+            properties:
+                interfacename: 'eth1'
+                gsc_cnt: { get_input: xap_grid_gscs_count }
+                zones: { get_input: xap_grid_zones }
+            relationships:
+                -   target: xap_datagrid_vm
+                    type: cloudify.relationships.contained_in
+                -   target: xap_management
+                    type: xap_connected_to_lus
+            interfaces:
+                cloudify.interfaces.lifecycle:
+                  create: xap-scripts/install-xap.sh
+                  start: xap-scripts/start-xap.sh
+                  stop: xap-scripts/stop-xap.sh
+
+         xap_gateway:
+            type: xap_gateway_type
+            properties:
+                interfacename: 'eth1'
+                gsc_cnt: { get_input: xap_gateway_gscs_count }
+                zones: { get_input: xap_gateway_zones }
+
+            relationships:
+                -   target: xap_gateway_vm
+                    type: cloudify.relationships.contained_in
+                -   target: xap_management
+                    type: xap_connected_to_lus
+                -   target: xap_datagrid
+                    type: cloudify.relationships.depends_on
+            interfaces:
+                admin.commands:
+                  deploy_gateway_pu:
+                      implementation: xap_plugin.xap_operations.gateway_operations.deploy_gateway_pu
+                cloudify.interfaces.lifecycle:
+                  create: xap-scripts/install-xap.sh
+                  start: xap-scripts/start-gateway.sh
+                  stop: xap-scripts/stop-xap.sh
+
+         webui:
+            type: xap_webui_type
+            properties:
+                interfacename: 'eth1'
+            interfaces:
+                cloudify.interfaces.lifecycle:
+                  start: xap-scripts/start-ui.sh
+                  stop: xap-scripts/stop-ui.sh
+            relationships:
+                - target: xap_management_vm
+                  type: cloudify.relationships.contained_in
+                - target: xap_management
+                  type: cloudify.relationships.depends_on
+
+         demo_shell:
+            type: demo_shell_type
+            properties:
+                interfacename: 'eth1'
+            interfaces:
+                cloudify.interfaces.lifecycle:
+                  create: butterfly-scripts/install.sh
+                  start: butterfly-scripts/start.sh
+            relationships:
+                - target: xap_management_vm
+                  type: cloudify.relationships.contained_in
+                - target: xap_management
+                  type: cloudify.relationships.depends_on
+
+

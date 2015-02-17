@@ -1,0 +1,204 @@
+tosca_definitions_version: cloudify_dsl_1_0
+
+#######
+# Cloudify Blueprint which describes a xap cluster (single node)
+#
+imports:
+    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
+    - http://www.getcloudify.org/spec/diamond-plugin/1.1/plugin.yaml
+    - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
+    - xap-gateway-commons-inputs.yaml
+    - xap-gateway-commons.yaml
+
+node_types:
+    vm_host:
+        derived_from: cloudify.openstack.nodes.Server
+        properties:
+            cloudify_agent:
+              default:
+                user: "ubuntu"
+
+node_templates:
+        xap_security_group:
+            type: cloudify.openstack.nodes.SecurityGroup
+            properties:
+                security_group:
+                    name: xap_security_group
+                resource_id: xap_security_group
+                use_external_resource: True
+                rules:
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 8080
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 8888
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 9099
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 10000
+                          port_range_max: 10100
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7122
+                          port_range_max: 7222
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7122
+                          port_range_max: 7222
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 4174
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port: 4174
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7102
+                          port_range_max: 7104
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7102
+                          port_range_max: 7104
+
+        xap_management_vm:
+            type: vm_host
+            instances:
+                deploy: 1
+            properties:
+              server:
+                  image: "d81ccdfe-7482-460e-a7ce-69ea29aa129b"
+                  flavor: "ba4e08fd-e4c5-4233-a906-f1bb31cb659d"
+                  security_groups: ['xap_security_group']
+
+            relationships:
+                - target: floatingip
+                  type: cloudify.openstack.server_connected_to_floating_ip
+                - target: xap_security_group
+                  type: cloudify.relationships.depends_on
+
+        floatingip:
+            type: cloudify.openstack.nodes.FloatingIP
+        floatingip2:
+                    type: cloudify.openstack.nodes.FloatingIP
+        floatingip3:
+                    type: cloudify.openstack.nodes.FloatingIP
+
+        xap_datagrid_vm:
+            type: vm_host
+            instances:
+                deploy: 1
+            properties:
+              server:
+                  image: "d81ccdfe-7482-460e-a7ce-69ea29aa129b"
+                  flavor: "ba4e08fd-e4c5-4233-a906-f1bb31cb659d"
+                  security_groups: ['xap_security_group']
+            relationships:
+                - target: floatingip2
+                  type: cloudify.openstack.server_connected_to_floating_ip
+                - target: xap_security_group
+                  type: cloudify.relationships.depends_on
+
+        xap_gateway_vm:
+            type: vm_host
+            instances:
+                deploy: 1
+            properties:
+              server:
+                  image: "d81ccdfe-7482-460e-a7ce-69ea29aa129b"
+                  flavor: "ba4e08fd-e4c5-4233-a906-f1bb31cb659d"
+                  security_groups: ['xap_security_group']
+            relationships:
+                - target: floatingip3
+                  type: cloudify.openstack.server_connected_to_floating_ip
+                - target: xap_security_group
+                  type: cloudify.relationships.depends_on
+
+        xap_management:
+            type: xap_type
+            properties:
+                lus_cnt: 1
+                global_lus_cnt: 0
+                gsm_cnt: 1
+                global_gsm_cnt: 0
+                gsc_cnt: { get_input: xap_management_gscs_count }
+                zones: { get_input: xap_management_zones }
+                GSM_JAVA_OPTIONS: -Xms128m -Xmx128m
+            relationships:
+                -   target: xap_management_vm
+                    type: cloudify.relationships.contained_in
+            interfaces:
+                admin.commands:
+                  deploy_grid:
+                      implementation: xap_plugin.xap_operations.basic_operations.deploy_grid
+                  undeploy_grid:
+                      implementation: xap_plugin.xap_operations.basic_operations.undeploy_grid
+                  deploy_pu:
+                      implementation: xap_plugin.xap_operations.basic_operations.deploy_pu
+                  deploy_gateway_space:
+                      implementation: xap_plugin.xap_operations.gateway_operations.deploy_gateway_space
+                  deploy_rest:
+                      implementation: xap_plugin.xap_operations.gateway_operations.deploy_rest
+
+                cloudify.interfaces.lifecycle:
+                  create: xap-scripts/install-xap.sh
+                  start: xap-scripts/start-xap.sh
+                  stop: xap-scripts/stop-xap.sh
+
+
+        xap_datagrid:
+            type: xap_datagrid_type
+            properties:
+                gsc_cnt: { get_input: xap_grid_gscs_count }
+                zones: { get_input: xap_grid_zones }
+            relationships:
+                -   target: xap_datagrid_vm
+                    type: cloudify.relationships.contained_in
+                -   target: xap_management
+                    type: xap_connected_to_lus
+            interfaces:
+                cloudify.interfaces.lifecycle:
+                  create: xap-scripts/install-xap.sh
+                  start: xap-scripts/start-xap.sh
+                  stop: xap-scripts/stop-xap.sh
+
+        xap_gateway:
+            type: xap_gateway_type
+            properties:
+                gsc_cnt: { get_input: xap_gateway_gscs_count }
+                zones: { get_input: xap_gateway_zones }
+
+            relationships:
+                -   target: xap_gateway_vm
+                    type: cloudify.relationships.contained_in
+                -   target: xap_management
+                    type: xap_connected_to_lus
+                -   target: xap_datagrid
+                    type: cloudify.relationships.depends_on
+            interfaces:
+                admin.commands:
+                  deploy_gateway_pu:
+                      implementation: xap_plugin.xap_operations.gateway_operations.deploy_gateway_pu
+                cloudify.interfaces.lifecycle:
+                  create: xap-scripts/install-xap.sh
+                  start: xap-scripts/start-gateway.sh
+                  stop: xap-scripts/stop-xap.sh
+
+        webui:
+            type: xap_webui_type
+            interfaces:
+                cloudify.interfaces.lifecycle:
+                  start: xap-scripts/start-ui.sh
+                  stop: xap-scripts/stop-ui.sh
+            relationships:
+                - target: xap_management_vm
+                  type: cloudify.relationships.contained_in
+                - target: xap_management
+                  type: cloudify.relationships.depends_on
+
+        demo_shell:
+            type: demo_shell_type
+            interfaces:
+                cloudify.interfaces.lifecycle:
+                  create: butterfly-scripts/install.sh
+                  start: butterfly-scripts/start.sh
+            relationships:
+                - target: xap_management_vm
+                  type: cloudify.relationships.contained_in
+                - target: xap_management
+                  type: cloudify.relationships.depends_on

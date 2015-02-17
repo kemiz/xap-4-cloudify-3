@@ -1,0 +1,174 @@
+plugins:
+    xap_config_plugin:
+        executor: host_agent
+        source: xap-config-plugin
+
+    xap_plugin:
+        executor: host_agent
+        source: xap-plugin
+
+workflows:
+    deploy_grid:
+        mapping: xap_plugin.xap_workflows.basic_workflows.deploy_grid
+        parameters:
+            grid_name:
+              default: dataGrid
+            schema:
+              default: partitioned-sync2backup
+            partitions:
+              default: 1
+            backups:
+              default: 0
+            max_per_vm:
+              default: 0
+            max_per_machine:
+              default: 0
+    undeploy_grid:
+        mapping: xap_plugin.xap_workflows.basic_workflows.undeploy_grid
+        parameters:
+            grid_name:
+              default: dataGrid
+    deploy_pu:
+        mapping: xap_plugin.xap_workflows.basic_workflows.deploy_pu
+        parameters:
+            pu_url:
+              default: ""
+            override_pu_name:
+              default: ""
+            schema:
+              default: partitioned-sync2backup
+            partitions:
+              default: 1
+            backups:
+              default: 0
+            max_per_vm:
+              default: 0
+            max_per_machine:
+              default: 0
+    auto_heal_workflow:
+        mapping: default_workflows.cloudify.plugins.workflows.auto_heal_reinstall_node_subgraph
+        parameters:
+            node_id:
+              description: none
+
+node_types:
+    xap_type:
+        derived_from: cloudify.nodes.ApplicationServer
+        properties:
+            interfacename:
+                type: string
+                default: 'eth0'
+            GSA_JAVA_OPTIONS:
+                type: string
+                default: ''
+            gsm_cnt:
+                type: integer
+                default: 0
+            global_gsm_cnt:
+                type: integer
+                default: 0
+            GSM_JAVA_OPTIONS:
+                type: string
+                default: ''
+            lus_cnt:
+                type: integer
+                default: 0
+            lus_port:
+                type: integer
+                default: 0
+            LUS_JAVA_OPTIONS:
+                type: string
+                default: ''
+            global_lus_cnt:
+                type: integer
+                default: 0
+            gsc_cnt:
+                type: integer
+                default: 0
+            GSC_JAVA_OPTIONS:
+                type: string
+                default: ''
+            download_url:
+                type: string
+                default: 'http://www.gigaspaces.com/tempfiles/downloads/EarlyAccess/xap/10.1.0/m10/gigaspaces-xap-premium-10.1.0-m10-b12592-with-license.zip'
+            license_key:
+                type: string
+                default: ''
+            lrmi_comm_min_port:
+                type: integer
+                default: 7122
+            lrmi_comm_max_port:
+                type: integer
+                default: 7222
+
+    xap_webui_type:
+        derived_from: cloudify.nodes.WebServer
+        properties:
+            interfacename:
+                type: string
+                default: 'eth0'
+            webui_port:
+                type: integer
+                default: 9099
+
+    demo_shell_type:
+        derived_from: cloudify.nodes.WebServer
+        properties:
+            interfacename:
+                type: string
+                default: 'eth0'
+            port:
+                type: integer
+                default: 8080
+            butterfly_repo:
+                type: string
+                default: https://github.com/CloudifySource/butterfly.git
+            demo_url:
+                type: string
+                default: https://github.com/Gigaspaces/XAP-Interactive-Tutorial/archive/master.zip
+            lrmi_comm_min_port:
+                type: integer
+                default: 7122
+            lrmi_comm_max_port:
+                type: integer
+                default: 7222
+
+
+relationships:
+    xap_connected_to_lus:
+        derived_from: cloudify.relationships.connected_to
+        source_interfaces:
+            cloudify.interfaces.relationship_lifecycle:
+                postconfigure:
+                    implementation: xap-scripts/get_locators.py
+                    inputs: {}
+
+
+
+
+groups:
+    autohealing_group:
+      members: [xap_management_vm,xap_container_vm,webui]
+      policies:
+        simple_autoheal_policy:
+          type: cloudify.policies.types.host_failure
+          triggers:
+            auto_heal_trigger:
+              type:
+                cloudify.policies.triggers.execute_workflow
+              parameters:
+                workflow: auto_heal_workflow
+                allow_custom_parameters: True
+                workflow_parameters:
+                  node_id:
+                    get_property: ['SELF', 'failing_node']
+                  diagnose_value:
+                    get_property: ['SELF', 'diagnose']
+
+outputs:
+
+    management_ui:
+      description: XAP UI URL
+      value:
+        ip: {  get_attribute: [ xap_management_vm,  ip_address ] }
+        port: 7104
