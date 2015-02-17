@@ -41,7 +41,7 @@ node_types:
                 default: ''
             download_url:
                 type: string
-                default: 'http://www.gigaspaces.com/tempfiles/downloads/EarlyAccess/xap/10.1.0/m10/gigaspaces-xap-premium-10.1.0-m10-b12592-with-license.zip'
+                default: 'http://repository.cloudifysource.org/com/gigaspaces/xap-core/10.1.0-12593-M11/gigaspaces-xap-premium-10.1.0-m11-b12593.zip'
             license_key:
                 type: string
                 default: ''
