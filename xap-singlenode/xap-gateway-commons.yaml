@@ -113,7 +113,7 @@ plugins:
 
 
 workflows:
-    my_workflow:
+    deploy_space_with_gateway:
         mapping: xap_plugin.xap_workflows.gateway_workflow.start_gateway
         parameters:
           space_name:
@@ -184,6 +184,24 @@ workflows:
             node_id:
               description: none
 
+groups:
+    autohealing_group:
+      members: [xap_gateway_vm, xap_gateway]
+      policies:
+        simple_autoheal_policy:
+          type: cloudify.policies.types.host_failure
+          triggers:
+            auto_heal_trigger:
+              type:
+                cloudify.policies.triggers.execute_workflow
+              parameters:
+                workflow: auto_heal_workflow
+                allow_custom_parameters: True
+                workflow_parameters:
+                  node_id:
+                    get_property: ['SELF', 'failing_node']
+                  diagnose_value:
+                    get_property: ['SELF', 'diagnose']
 
 relationships:
     xap_connected_to_lus:
