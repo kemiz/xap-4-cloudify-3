@@ -1,11 +1,11 @@
 inputs:
 ##Global parameters
     lrmi_comm_min_port:
-        description: aa
+        description: LRMI min port
         type: integer
         default: 7122
     lrmi_comm_max_port:
-        description: aa
+        description: LRMI max port
         type: integer
         default: 7222
 
