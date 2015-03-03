@@ -19,12 +19,86 @@ node_types:
                 user: "ubuntu"
 
 node_templates:
-        xap_security_group:
+        xap_management_security_group:
             type: cloudify.openstack.nodes.SecurityGroup
             properties:
                 security_group:
-                    name: xap_security_group
+                    name: xap_management_security_group
                 resource_id: xap_security_group
+                rules:
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 8080
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 8888
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 9099
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 10000
+                          port_range_max: 10100
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7122
+                          port_range_max: 7222
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7122
+                          port_range_max: 7222
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 4174
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port: 4174
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7102
+                          port_range_max: 7104
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7102
+                          port_range_max: 7104
+
+        xap_datagrid_security_group:
+            type: cloudify.openstack.nodes.SecurityGroup
+            properties:
+                security_group:
+                    name: xap_datagrid_security_group
+                #resource_id: xap_datagrid_security_group
+                #use_external_resource: True
+                rules:
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 8080
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 8888
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 9099
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 10000
+                          port_range_max: 10100
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7122
+                          port_range_max: 7222
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7122
+                          port_range_max: 7222
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port: 4174
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port: 4174
+                        - remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7102
+                          port_range_max: 7104
+                        - direction: egress
+                          remote_ip_prefix: 0.0.0.0/0
+                          port_range_min: 7102
+                          port_range_max: 7104
+
+        xap_gateway_security_group:
+            type: cloudify.openstack.nodes.SecurityGroup
+            properties:
+                security_group:
+                    name: xap_gateway_security_group
+                #resource_id: xap_gateway_security_group
+                #use_external_resource: True
                 rules:
                         - remote_ip_prefix: 0.0.0.0/0
                           port: 8080
@@ -63,19 +137,18 @@ node_templates:
               server:
                   image: "d81ccdfe-7482-460e-a7ce-69ea29aa129b"
                   flavor: "ba4e08fd-e4c5-4233-a906-f1bb31cb659d"
-                  security_groups: ['xap_security_group']
 
             relationships:
-                - target: floatingip
+                - target: floatingip_management
                   type: cloudify.openstack.server_connected_to_floating_ip
-                - target: xap_security_group
-                  type: cloudify.relationships.depends_on
+                - target: xap_management_security_group
+                  type: cloudify.openstack.server_connected_to_security_group
 
-        floatingip:
+        floatingip_management:
             type: cloudify.openstack.nodes.FloatingIP
-        floatingip2:
+        floatingip_datagrid:
                     type: cloudify.openstack.nodes.FloatingIP
-        floatingip3:
+        floatingip_gateway:
                     type: cloudify.openstack.nodes.FloatingIP
 
         xap_datagrid_vm:
@@ -86,12 +159,11 @@ node_templates:
               server:
                   image: "d81ccdfe-7482-460e-a7ce-69ea29aa129b"
                   flavor: "ba4e08fd-e4c5-4233-a906-f1bb31cb659d"
-                  security_groups: ['xap_security_group']
             relationships:
-                - target: floatingip2
+                - target: floatingip_datagrid
                   type: cloudify.openstack.server_connected_to_floating_ip
-                - target: xap_security_group
-                  type: cloudify.relationships.depends_on
+                - target: xap_datagrid_security_group
+                  type: cloudify.openstack.server_connected_to_security_group
 
         xap_gateway_vm:
             type: vm_host
@@ -101,12 +173,11 @@ node_templates:
               server:
                   image: "d81ccdfe-7482-460e-a7ce-69ea29aa129b"
                   flavor: "ba4e08fd-e4c5-4233-a906-f1bb31cb659d"
-                  security_groups: ['xap_security_group']
             relationships:
-                - target: floatingip3
+                - target: floatingip_gateway
                   type: cloudify.openstack.server_connected_to_floating_ip
-                - target: xap_security_group
-                  type: cloudify.relationships.depends_on
+                - target: xap_gateway_security_group
+                  type: cloudify.openstack.server_connected_to_security_group
 
         xap_management:
             type: xap_type
