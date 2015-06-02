@@ -23,7 +23,7 @@ setup(
     # Do not use underscores in the plugin name.
     name='xap-plugin',
 
-    version='3.1',
+    version='3.2a8',
     author='yohana',
     author_email='yohana@gigaspaces.com',
     description='ENTER-DESCRIPTION-HERE',
@@ -35,10 +35,10 @@ setup(
     zip_safe=False,
     install_requires=[
         # Necessary dependency for developing plugins, do not remove!
-        "cloudify-plugins-common==3.1"
+        "cloudify-plugins-common==3.2a8"
     ],
     test_requires=[
-        "cloudify-dsl-parser==3.1"
+        "cloudify-dsl-parser==3.2a8"
         "nose"
     ]
 )

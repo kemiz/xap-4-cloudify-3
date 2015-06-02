@@ -4,10 +4,27 @@ tosca_definitions_version: cloudify_dsl_1_0
 # Cloudify Blueprint which describes a xap cluster (single node)
 #
 imports:
-    - http://www.getcloudify.org/spec/cloudify/3.1/types.yaml
-    - http://www.getcloudify.org/spec/diamond-plugin/1.1/plugin.yaml
-    - http://www.getcloudify.org/spec/openstack-plugin/1.1/plugin.yaml
+    - http://www.getcloudify.org/spec/cloudify/3.2m8/types.yaml
+    - http://www.getcloudify.org/spec/diamond-plugin/1.2m8/plugin.yaml
+    - http://www.getcloudify.org/spec/openstack-plugin/1.2m8/plugin.yaml
     - xap-blueprint-commons.yaml
+
+inputs:
+
+  image_id:
+    type: string
+
+  flavor_id:
+    type: string
+
+  user:
+    type: string
+
+  xap_management_security_group:
+    type: string
+
+  xap_container_security_group:
+    type: string    
 
 node_types:
     vm_host:
@@ -15,14 +32,15 @@ node_types:
         properties:
             cloudify_agent:
               default:
-                user: "ubuntu"
+                user: { get_input: user }
 
 node_templates:
         xap_management_security_group:
             type: cloudify.openstack.nodes.SecurityGroup
             properties:
+                resource_id: { get_input: xap_management_security_group }
                 security_group:
-                    name: xap_management_security_group
+                    description: Security group for xap_management_security_group
                 rules:
                     - remote_ip_prefix: 0.0.0.0/0
                       port: 8099
@@ -48,11 +66,13 @@ node_templates:
                       port_range_min: 7102
                       port_range_max: 7104
 
+
         xap_container_security_group:
             type: cloudify.openstack.nodes.SecurityGroup
             properties:
+                resource_id: { get_input: xap_container_security_group }
                 security_group:
-                    name: xap_container_security_group
+                    description: Security group for xap_container_security_group
                 rules:
                     - remote_ip_prefix: 0.0.0.0/0
                       port_range_min: 7122
@@ -80,14 +100,13 @@ node_templates:
                 deploy: 1
             properties:
               server:
-                  image: "d81ccdfe-7482-460e-a7ce-69ea29aa129b"
-                  flavor: "ba4e08fd-e4c5-4233-a906-f1bb31cb659d"
-                  security_groups: ['xap_management_security_group']
+                  image: { get_input: image_id }
+                  flavor: { get_input: flavor_id }
             relationships:
                 - target: floatingip
                   type: cloudify.openstack.server_connected_to_floating_ip
                 - target: xap_management_security_group
-                  type: cloudify.relationships.depends_on
+                  type: cloudify.openstack.server_connected_to_security_group
 
         floatingip:
             type: cloudify.openstack.nodes.FloatingIP
@@ -98,12 +117,11 @@ node_templates:
                 deploy: 1
             properties:
               server:
-                  image: "d81ccdfe-7482-460e-a7ce-69ea29aa129b"
-                  flavor: "ba4e08fd-e4c5-4233-a906-f1bb31cb659d"
-                  security_groups: ['xap_container_security_group']
+                  image: { get_input: image_id }
+                  flavor: { get_input: flavor_id }
             relationships:
                 - target: xap_container_security_group
-                  type: cloudify.relationships.depends_on
+                  type: cloudify.openstack.server_connected_to_security_group
 
         xap_management:
             type: xap_type
