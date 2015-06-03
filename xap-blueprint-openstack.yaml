@@ -8,7 +8,6 @@ imports:
     - http://www.getcloudify.org/spec/diamond-plugin/1.2m8/plugin.yaml
     - http://www.getcloudify.org/spec/openstack-plugin/1.2m8/plugin.yaml
     - https://raw.githubusercontent.com/kemiz/monitored-server-cfy3/3.2m8/types/monitored-server-types.yaml
-    - https://raw.githubusercontent.com/kemiz/mongodb-cfy3/3.2m8/types/mongo.yaml
     - commons/xap-blueprint-commons.yaml
 
 inputs:
@@ -18,8 +17,9 @@ inputs:
 
   flavor_id:
     type: string
-
-  user:
+  
+  # Required input for vm host machine (in monitored server types)
+  agent_user:
     type: string
 
   xap_management_security_group:
@@ -29,194 +29,158 @@ inputs:
     type: string    
 
 node_templates:
-        xap_management_security_group:
-            type: cloudify.openstack.nodes.SecurityGroup
-            properties:
-                resource_id: { get_input: xap_management_security_group }
-                security_group:
-                    description: Security group for xap_management_security_group
-                rules:
-                    - remote_ip_prefix: 0.0.0.0/0
-                      port: 8099
-                    - remote_ip_prefix: 0.0.0.0/0
-                      port: 9099
-                    - remote_ip_prefix: 0.0.0.0/0
-                      port_range_min: 7122
-                      port_range_max: 7222
-                    - direction: egress
-                      remote_ip_prefix: 0.0.0.0/0
-                      port_range_min: 7122
-                      port_range_max: 7222
-                    - remote_ip_prefix: 0.0.0.0/0
-                      port: 4174
-                    - direction: egress
-                      remote_ip_prefix: 0.0.0.0/0
-                      port: 4174
-                    - remote_ip_prefix: 0.0.0.0/0
-                      port_range_min: 7102
-                      port_range_max: 7104
-                    - direction: egress
-                      remote_ip_prefix: 0.0.0.0/0
-                      port_range_min: 7102
-                      port_range_max: 7104
+        
+  xap_management_security_group:
+      type: cloudify.openstack.nodes.SecurityGroup
+      properties:
+          resource_id: { get_input: xap_management_security_group }
+          security_group:
+              description: Security group for xap_management_security_group
+          rules:
+              - remote_ip_prefix: 0.0.0.0/0
+                port: 8099
+              - remote_ip_prefix: 0.0.0.0/0
+                port: 9099
+              - remote_ip_prefix: 0.0.0.0/0
+                port_range_min: 7122
+                port_range_max: 7222
+              - direction: egress
+                remote_ip_prefix: 0.0.0.0/0
+                port_range_min: 7122
+                port_range_max: 7222
+              - remote_ip_prefix: 0.0.0.0/0
+                port: 4174
+              - direction: egress
+                remote_ip_prefix: 0.0.0.0/0
+                port: 4174
+              - remote_ip_prefix: 0.0.0.0/0
+                port_range_min: 7102
+                port_range_max: 7104
+              - direction: egress
+                remote_ip_prefix: 0.0.0.0/0
+                port_range_min: 7102
+                port_range_max: 7104
 
 
-        xap_container_security_group:
-            type: cloudify.openstack.nodes.SecurityGroup
-            properties:
-                resource_id: { get_input: xap_container_security_group }
-                security_group:
-                    description: Security group for xap_container_security_group
-                rules:
-                    - remote_ip_prefix: 0.0.0.0/0
-                      port_range_min: 7122
-                      port_range_max: 7222
-                    - direction: egress
-                      remote_ip_prefix: 0.0.0.0/0
-                      port_range_min: 7122
-                      port_range_max: 7222
-                    - remote_ip_prefix: 0.0.0.0/0
-                      port: 4174
-                    - direction: egress
-                      remote_ip_prefix: 0.0.0.0/0
-                      port: 4174
-                    - remote_ip_prefix: 0.0.0.0/0
-                      port_range_min: 7102
-                      port_range_max: 7104
-                    - direction: egress
-                      remote_ip_prefix: 0.0.0.0/0
-                      port_range_min: 7102
-                      port_range_max: 7104
-        mongod_host:
-            type: monitoredhosts.openstack.nodes.MonitoredServer
-            relationships:
-                - target: mongod_security_group
-                  type: cloudify.openstack.server_connected_to_security_group
+  xap_container_security_group:
+      type: cloudify.openstack.nodes.SecurityGroup
+      properties:
+          resource_id: { get_input: xap_container_security_group }
+          security_group:
+              description: Security group for xap_container_security_group
+          rules:
+              - remote_ip_prefix: 0.0.0.0/0
+                port_range_min: 7122
+                port_range_max: 7222
+              - direction: egress
+                remote_ip_prefix: 0.0.0.0/0
+                port_range_min: 7122
+                port_range_max: 7222
+              - remote_ip_prefix: 0.0.0.0/0
+                port: 4174
+              - direction: egress
+                remote_ip_prefix: 0.0.0.0/0
+                port: 4174
+              - remote_ip_prefix: 0.0.0.0/0
+                port_range_min: 7102
+                port_range_max: 7104
+              - direction: egress
+                remote_ip_prefix: 0.0.0.0/0
+                port_range_min: 7102
+                port_range_max: 7104
 
-        mongod:
-          type: nodecellar.nodes.MongoDatabase
-          properties:
-            port: 27017
-          interfaces:
-            cloudify.interfaces.lifecycle:
+  xap_management_vm:
+      type: monitoredhosts.openstack.nodes.MonitoredServer
+      instances:
+          deploy: 1
+      properties:
+          server:
+              image: { get_input: image_id }
+              flavor: { get_input: flavor_id }
+      relationships:
+          - target: floatingip
+            type: cloudify.openstack.server_connected_to_floating_ip
+          - target: xap_management_security_group
+            type: cloudify.openstack.server_connected_to_security_group
 
-              ###########################################################
-              # The MongoDBCollector depends on a python library called
-              # pymongo. We install this library in the 'configure'
-              # lifecycle hook of this node.
-              ###########################################################
+  floatingip:
+      type: cloudify.openstack.nodes.FloatingIP
 
-              configure: scripts/mongo/install-pymongo.sh
+  xap_container_vm:
+      type: monitoredhosts.openstack.nodes.MonitoredServer
+      instances:
+          deploy: 1
+      properties:
+        server:
+            image: { get_input: image_id }
+            flavor: { get_input: flavor_id }
+      relationships:
+          - target: xap_container_security_group
+            type: cloudify.openstack.server_connected_to_security_group
 
-            ###########################################################
-            # Notice that this node defines an additional collector
-            # to collect data on the MongoDB.
-            ###########################################################
+  xap_management:
+      type: xap_type
+      properties:
+          lus_cnt: 1
+          global_lus_cnt: 0
+          gsm_cnt: 1
+          global_gsm_cnt: 0
+          gsc_cnt: 0
+          GSM_JAVA_OPTIONS: -Xms128m -Xmx128m
+      relationships:
+          -   target: xap_management_vm
+              type: cloudify.relationships.contained_in
+      interfaces:
+          admin.commands:
+            deploy_grid:
+                implementation: xap_plugin.xap_operations.basic_operations.deploy_grid
+            undeploy_grid:
+                implementation: xap_plugin.xap_operations.basic_operations.undeploy_grid
+            deploy_pu:
+                implementation: xap_plugin.xap_operations.basic_operations.deploy_pu
 
-            cloudify.interfaces.monitoring:
-                start:
-                  implementation: diamond.diamond_agent.tasks.add_collectors
-                  inputs:
-                    collectors_config:
-                      MongoDBCollector:
-                        config:
-                          hosts: "localhost:27017"
-          relationships:
-            - type: cloudify.relationships.contained_in
-              target: mongod_host
-
-        xap_management_vm:
-            type: monitoredhosts.openstack.nodes.MonitoredServer
-            instances:
-                deploy: 1
-            properties:
-                server:
-                    image: { get_input: image_id }
-                    flavor: { get_input: flavor_id }
-            relationships:
-                - target: floatingip
-                  type: cloudify.openstack.server_connected_to_floating_ip
-                - target: xap_management_security_group
-                  type: cloudify.openstack.server_connected_to_security_group
-
-        floatingip:
-            type: cloudify.openstack.nodes.FloatingIP
-
-        xap_container_vm:
-            type: monitoredhosts.openstack.nodes.MonitoredServer
-            instances:
-                deploy: 1
-            properties:
-              server:
-                  image: { get_input: image_id }
-                  flavor: { get_input: flavor_id }
-            relationships:
-                - target: xap_container_security_group
-                  type: cloudify.openstack.server_connected_to_security_group
-
-        xap_management:
-            type: xap_type
-            properties:
-                lus_cnt: 1
-                global_lus_cnt: 0
-                gsm_cnt: 1
-                global_gsm_cnt: 0
-                gsc_cnt: 0
-                GSM_JAVA_OPTIONS: -Xms128m -Xmx128m
-            relationships:
-                -   target: xap_management_vm
-                    type: cloudify.relationships.contained_in
-            interfaces:
-                admin.commands:
-                  deploy_grid:
-                      implementation: xap_plugin.xap_operations.basic_operations.deploy_grid
-                  undeploy_grid:
-                      implementation: xap_plugin.xap_operations.basic_operations.undeploy_grid
-                  deploy_pu:
-                      implementation: xap_plugin.xap_operations.basic_operations.deploy_pu
-
-                cloudify.interfaces.lifecycle:
-                  create: xap-scripts/install-xap.sh
-                  start: xap-scripts/start-xap.sh
-                  stop: xap-scripts/stop-xap.sh
+          cloudify.interfaces.lifecycle:
+            create: xap-scripts/install-xap.sh
+            start: xap-scripts/start-xap.sh
+            stop: xap-scripts/stop-xap.sh
 
 
-        xap_container:
-            type: xap_type
-            properties:
-                gsc_cnt: 1
-                GSC_JAVA_OPTIONS: -Xms128m -Xmx128m
-            relationships:
-                -   target: xap_container_vm
-                    type: cloudify.relationships.contained_in
-                -   target: xap_management
-                    type: xap_connected_to_lus
-            interfaces:
-                cloudify.interfaces.lifecycle:
-                  create: xap-scripts/install-xap.sh
-                  start: xap-scripts/start-xap.sh
-                  stop: xap-scripts/stop-xap.sh
+  xap_container:
+      type: xap_type
+      properties:
+          gsc_cnt: 1
+          GSC_JAVA_OPTIONS: -Xms128m -Xmx128m
+      relationships:
+          -   target: xap_container_vm
+              type: cloudify.relationships.contained_in
+          -   target: xap_management
+              type: xap_connected_to_lus
+      interfaces:
+          cloudify.interfaces.lifecycle:
+            create: xap-scripts/install-xap.sh
+            start: xap-scripts/start-xap.sh
+            stop: xap-scripts/stop-xap.sh
 
-        webui:
-            type: xap_webui_type
-            interfaces:
-                cloudify.interfaces.lifecycle:
-                  start: xap-scripts/start-ui.sh
-                  stop: xap-scripts/stop-ui.sh
-            relationships:
-                - target: xap_management_vm
-                  type: cloudify.relationships.contained_in
-                - target: xap_management
-                  type: cloudify.relationships.depends_on
+  webui:
+      type: xap_webui_type
+      interfaces:
+          cloudify.interfaces.lifecycle:
+            start: xap-scripts/start-ui.sh
+            stop: xap-scripts/stop-ui.sh
+      relationships:
+          - target: xap_management_vm
+            type: cloudify.relationships.contained_in
+          - target: xap_management
+            type: cloudify.relationships.depends_on
 
-        demo_shell:
-            type: demo_shell_type
-            interfaces:
-                cloudify.interfaces.lifecycle:
-                  create: butterfly-scripts/install.sh
-                  start: butterfly-scripts/start.sh
-            relationships:
-                - target: xap_management_vm
-                  type: cloudify.relationships.contained_in
-                - target: xap_management
-                  type: cloudify.relationships.depends_on
+  demo_shell:
+      type: demo_shell_type
+      interfaces:
+          cloudify.interfaces.lifecycle:
+            create: butterfly-scripts/install.sh
+            start: butterfly-scripts/start.sh
+      relationships:
+          - target: xap_management_vm
+            type: cloudify.relationships.contained_in
+          - target: xap_management
+            type: cloudify.relationships.depends_on
