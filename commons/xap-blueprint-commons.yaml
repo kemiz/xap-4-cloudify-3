@@ -1,11 +1,11 @@
 plugins:
     xap_config_plugin:
         executor: host_agent
-        source: xap-config-plugin
+        source: https://github.com/kemiz/xap-config-plugin/archive/3.2m8.zip
 
     xap_plugin:
         executor: host_agent
-        source: xap-plugin
+        source: https://github.com/kemiz/xap-plugin/archive/3.2m8.zip
 
 workflows:
     deploy_grid:
