@@ -68,13 +68,13 @@ if [ ! -d $DIR/xap ]; then
 
   # add dynamic nat mapper (needed for gateway)
 
-  wget https://github.com/kemiz/xap-4-cloudify-3/raw/3.2m8/xap-scripts/nat-mapper.jar -P $GSDIR/lib/platform/ext/nat-mapper.jar
+  wget -O $GSDIR/lib/platform/ext https://github.com/kemiz/xap-4-cloudify-3/raw/3.2m8/xap-scripts/nat-mapper.jar 
 
 
 else
   if [ ! -d /tmp/gsdir ]; then
       GSDIR=`ls -d $DIR/xap/gigaspaces*premium*`
       echo $GSDIR > /tmp/gsdir
-      wget https://github.com/kemiz/xap-4-cloudify-3/raw/3.2m8/xap-scripts/nat-mapper.jar -P $GSDIR/lib/platform/ext/nat-mapper.jar
+      wget -O $GSDIR/lib/platform/ext https://github.com/kemiz/xap-4-cloudify-3/raw/3.2m8/xap-scripts/nat-mapper.jar 
   fi
 fi
