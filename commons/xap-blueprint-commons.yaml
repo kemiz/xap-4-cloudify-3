@@ -100,7 +100,31 @@ node_types:
             lrmi_comm_max_port:
                 type: integer
                 default: 7222
-
+        interfaces:
+          cloudify.interfaces.lifecycle:
+            create:   
+                implementation: script.script_runner.tasks.run
+                inputs:
+                    script_path:
+                      default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/install-xap.sh
+            start:
+                implementation: script.script_runner.tasks.run
+                inputs:
+                    script_path:
+                        default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/start-xap.sh
+            stop: 
+                implementation: script.script_runner.tasks.run
+                inputs:
+                    script_path:
+                        default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/stop-xap.sh        
+          admin.commands:
+            deploy_grid:
+                implementation: xap_plugin.xap_operations.basic_operations.deploy_grid
+            undeploy_grid:
+                implementation: xap_plugin.xap_operations.basic_operations.undeploy_grid
+            deploy_pu:
+                implementation: xap_plugin.xap_operations.basic_operations.deploy_pu   
+                             
     xap_webui_type:
         derived_from: cloudify.nodes.WebServer
         properties:
@@ -110,6 +134,18 @@ node_types:
             webui_port:
                 type: integer
                 default: 9099
+        interfaces:
+          cloudify.interfaces.lifecycle:
+            start: 
+                implementation: script.script_runner.tasks.run
+                inputs:
+                    script_path:
+                        default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/start-ui.sh
+            stop: 
+                implementation: script.script_runner.tasks.run
+                inputs:
+                    script_path:
+                        default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/stop-ui.sh
 
     demo_shell_type:
         derived_from: cloudify.nodes.WebServer
@@ -132,7 +168,18 @@ node_types:
             lrmi_comm_max_port:
                 type: integer
                 default: 7222
-
+        interfaces:
+          cloudify.interfaces.lifecycle:
+            create: 
+              implementation: script.script_runner.tasks.run
+              inputs:
+                script_path:
+                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/butterfly-scripts/install.sh
+            start: 
+              implementation: script.script_runner.tasks.run
+              inputs:
+                script_path:
+                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/butterfly-scripts/start.sh
 
 relationships:
     xap_connected_to_lus:
@@ -140,8 +187,11 @@ relationships:
         source_interfaces:
             cloudify.interfaces.relationship_lifecycle:
                 postconfigure:
-                    implementation: xap-scripts/get_locators.py
-                    inputs: {}
+                  implementation: script.script_runner.tasks.run
+                  inputs:
+                    script_path:
+                      default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/get_locators.py
+
 
 
 

@@ -207,18 +207,6 @@ node_templates:
 
   demo_shell:
       type: demo_shell_type
-      interfaces:
-          cloudify.interfaces.lifecycle:
-            create: 
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/butterfly-scripts/install.sh
-            start: 
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/butterfly-scripts/start.sh
       relationships:
           - target: xap_management_vm
             type: cloudify.relationships.contained_in
