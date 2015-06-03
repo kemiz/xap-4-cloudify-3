@@ -130,32 +130,6 @@ node_templates:
       relationships:
           -   target: xap_management_vm
               type: cloudify.relationships.contained_in
-      interfaces:
-          admin.commands:
-            deploy_grid:
-                implementation: xap_plugin.xap_operations.basic_operations.deploy_grid
-            undeploy_grid:
-                implementation: xap_plugin.xap_operations.basic_operations.undeploy_grid
-            deploy_pu:
-                implementation: xap_plugin.xap_operations.basic_operations.deploy_pu
-
-          cloudify.interfaces.lifecycle:
-            create:               
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/install-xap.sh
-            start: 
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/start-xap.sh
-            stop: 
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/stop-xap.sh
-
 
   xap_container:
       type: xap_type
@@ -167,38 +141,9 @@ node_templates:
               type: cloudify.relationships.contained_in
           -   target: xap_management
               type: xap_connected_to_lus
-      interfaces:
-          cloudify.interfaces.lifecycle:
-            create:   
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/install-xap.sh
-            start:
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/start-xap.sh
-            stop: 
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/stop-xap.sh
 
   webui:
       type: xap_webui_type
-      interfaces:
-          cloudify.interfaces.lifecycle:
-            start: 
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/start-ui.sh
-            stop: 
-              implementation: script.script_runner.tasks.run
-              inputs:
-                script_path:
-                  default: https://raw.githubusercontent.com/kemiz/xap-4-cloudify-3/3.2m8/xap-scripts/stop-ui.sh
       relationships:
           - target: xap_management_vm
             type: cloudify.relationships.contained_in
