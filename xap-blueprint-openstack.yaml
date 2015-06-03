@@ -7,7 +7,9 @@ imports:
     - http://www.getcloudify.org/spec/cloudify/3.2m8/types.yaml
     - http://www.getcloudify.org/spec/diamond-plugin/1.2m8/plugin.yaml
     - http://www.getcloudify.org/spec/openstack-plugin/1.2m8/plugin.yaml
-    - xap-blueprint-commons.yaml
+    - https://raw.githubusercontent.com/kemiz/monitored-server-cfy3/3.2m8/types/monitored-server-types.yaml
+    - https://raw.githubusercontent.com/kemiz/mongodb-cfy3/3.2m8/types/mongo.yaml
+    - commons/xap-blueprint-commons.yaml
 
 inputs:
 
@@ -25,14 +27,6 @@ inputs:
 
   xap_container_security_group:
     type: string    
-
-node_types:
-    vm_host:
-        derived_from: cloudify.openstack.nodes.Server
-        properties:
-            cloudify_agent:
-              default:
-                user: { get_input: user }
 
 node_templates:
         xap_management_security_group:
@@ -93,15 +87,52 @@ node_templates:
                       remote_ip_prefix: 0.0.0.0/0
                       port_range_min: 7102
                       port_range_max: 7104
+        mongod_host:
+            type: monitoredhosts.openstack.nodes.MonitoredServer
+            relationships:
+                - target: mongod_security_group
+                  type: cloudify.openstack.server_connected_to_security_group
+
+        mongod:
+          type: nodecellar.nodes.MongoDatabase
+          properties:
+            port: 27017
+          interfaces:
+            cloudify.interfaces.lifecycle:
+
+              ###########################################################
+              # The MongoDBCollector depends on a python library called
+              # pymongo. We install this library in the 'configure'
+              # lifecycle hook of this node.
+              ###########################################################
+
+              configure: scripts/mongo/install-pymongo.sh
+
+            ###########################################################
+            # Notice that this node defines an additional collector
+            # to collect data on the MongoDB.
+            ###########################################################
+
+            cloudify.interfaces.monitoring:
+                start:
+                  implementation: diamond.diamond_agent.tasks.add_collectors
+                  inputs:
+                    collectors_config:
+                      MongoDBCollector:
+                        config:
+                          hosts: "localhost:27017"
+          relationships:
+            - type: cloudify.relationships.contained_in
+              target: mongod_host
 
         xap_management_vm:
-            type: vm_host
+            type: monitoredhosts.openstack.nodes.MonitoredServer
             instances:
                 deploy: 1
             properties:
-              server:
-                  image: { get_input: image_id }
-                  flavor: { get_input: flavor_id }
+                server:
+                    image: { get_input: image_id }
+                    flavor: { get_input: flavor_id }
             relationships:
                 - target: floatingip
                   type: cloudify.openstack.server_connected_to_floating_ip
@@ -112,7 +143,7 @@ node_templates:
             type: cloudify.openstack.nodes.FloatingIP
 
         xap_container_vm:
-            type: vm_host
+            type: monitoredhosts.openstack.nodes.MonitoredServer
             instances:
                 deploy: 1
             properties:
