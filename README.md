@@ -70,8 +70,8 @@ Butterfly runs a Groovy script that prompts the user to choose:<br/>
 ###Openstack blueprint
 This blueprint has been modified to have external access of the xap plugins in separate repositories. Therefore the plugin implementations contained in this repository will most likely be removed in the following commits after the rest of the blueprints have been ported. This will allow for the plugins to be separately managed and reused by any other blueprint specifications.
 
-Xap config plugin repository can be found here: https://github.com/kemiz/xap-config-plugin<br>
-Xap plugin repository can be found here: https://github.com/kemiz/xap-plugin
+XAP config plugin repository can be found here: https://github.com/kemiz/xap-config-plugin<br>
+XAP plugin repository can be found here: https://github.com/kemiz/xap-plugin
 
 Further more any script references have also been replaced with online references to provide more dynamic deployment in a way that any consecutive deployments will use the latest version of the scripts in the repository 
 
