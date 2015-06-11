@@ -7,6 +7,10 @@ A sample Cloudify 3 blueprint simulates a 2 node Gigaspaces XAP installation. Th
 
 Please note that the only blueprint that has been ported in this branch to support cloudify 3.2m8 is the openstack one. The rest of the blueprints are pending to be ported to 3.2. 
 
+Autoscaling & autohealing is currently NOT supported.
+
+Further additions will include the externalisation of XAP configuration such as the various ports number of starting instances and custom JVM configurations.
+
 #####Blueprint Installation
 
 ######Configuration
@@ -63,11 +67,17 @@ Butterfly runs a Groovy script that prompts the user to choose:<br/>
 (1) Start a demo that connects to the myDataGrid space and performs write, read, read with JDBC, read with SQLQuery on Pojos and Documents Objects. When it ends, it opens a Groovy Shell as in option (2) below.<br/>
 (2) Open Groovy Interactive Shell. All XAP's classes are imported to the Groovy Shell.
 
-#####Openstack blueprint
+###Openstack blueprint
 This blueprint has been modified to have external access of the xap plugins in separate repositories. Therefore the plugin implementations contained in this repository will most likely be removed in the following commits after the rest of the blueprints have been ported. This will allow for the plugins to be separately managed and reused by any other blueprint specifications.
 
-Xap config plugin repository can be found here:
-Xap plugin repository can be found here:
+Xap config plugin repository can be found here: https://github.com/kemiz/xap-config-plugin
+Xap plugin repository can be found here: https://github.com/kemiz/xap-plugin
 
 Further more any script references have also been replaced with online references to provide more dynamic deployment in a way that any consecutive deployments will use the latest version of the scripts in the repository 
 
+#####Deployment
+<ul>
+<li>1. Bootstrap new Cloudify Manager on OpenStack - Check <a href="http://getcloudify.org/guide/3.2/getting-started.html">here for instructions</a> </li>
+<li>2. Check out the repository switch to the right branch and upload the blueprint</li>
+<li>3. Create a new deployment of the blueprint and specify the correct inputs as per the template input file</li>
+</ul>
