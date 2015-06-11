@@ -5,10 +5,12 @@ xap-singlenode
 
 A sample Cloudify 3 blueprint simulates a 2 node Gigaspaces XAP installation. The blueprint consist of a management and container nodes.
 
+Please note that the only blueprint that has been ported in this branch to support cloudify 3.2m8 is the openstack one. The rest of the blueprints are pending to be ported to 3.2. 
+
 #####Blueprint Installation
 
 ######Configuration
-The most critical configuration option is the <i>license_key</i> property, which needs to be set to a valid XAP license key (look in your gs-license.xml file).   The recipe will function without it, but the grid will be limited per the "lite" license (limited memory and instances).
+The most critical configuration option is the <i>license_key</i> property, which needs to be set to a valid XAP license key (look in your gs-license.xml file).   The blueprint deployment will function without it, but the grid will be limited per the "lite" license (limited memory and instances).
 
 ###Blueprint Details
 
@@ -22,7 +24,7 @@ The <i>xap_container_vm</i> node contains the XAP container process: GSC.
 
 ###### workflows
 
-The blueprint provides several workflows:
+The blueprint provides several additional workflows:
 
 
 <dl>
@@ -60,4 +62,12 @@ This blueprint deploy a data grid called **myDataGrid** which enable you to use 
 Butterfly runs a Groovy script that prompts the user to choose:<br/>
 (1) Start a demo that connects to the myDataGrid space and performs write, read, read with JDBC, read with SQLQuery on Pojos and Documents Objects. When it ends, it opens a Groovy Shell as in option (2) below.<br/>
 (2) Open Groovy Interactive Shell. All XAP's classes are imported to the Groovy Shell.
+
+#####Openstack blueprint
+This blueprint has been modified to have external access of the xap plugins in separate repositories. Therefore the plugin implementations contained in this repository will most likely be removed in the following commits after the rest of the blueprints have been ported. This will allow for the plugins to be separately managed and reused by any other blueprint specifications.
+
+Xap config plugin repository can be found here:
+Xap plugin repository can be found here:
+
+Further more any script references have also been replaced with online references to provide more dynamic deployment in a way that any consecutive deployments will use the latest version of the scripts in the repository 
 
